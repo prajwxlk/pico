@@ -79,31 +79,6 @@ left = Pin(16, Pin.IN, Pin.PULL_UP)
 right = Pin(20, Pin.IN, Pin.PULL_UP)
 center = Pin(17, Pin.IN, Pin.PULL_UP)
 
-# Button pins
-button_a = Pin(15, Pin.IN, Pin.PULL_UP)  # Pause/Resume
-button_b = Pin(14, Pin.IN, Pin.PULL_UP)  # High Score
-button_x = Pin(13, Pin.IN, Pin.PULL_UP)  # Restart
-button_y = Pin(12, Pin.IN, Pin.PULL_UP)  # Exit
-
-def show_high_score(score):
-    lcd.fill(lcd.black)
-    lcd.text("High Score", 70, 100, lcd.green)
-    lcd.text(str(score), 110, 120, lcd.white)
-    lcd.text("Press B to return", 30, 160, lcd.blue)
-    lcd.show()
-    while button_b.value():  # Wait for B to be pressed
-        time.sleep(0.1)
-    time.sleep(0.2)  # Debounce
-
-def show_pause_screen():
-    lcd.fill(lcd.black)
-    lcd.text("PAUSED", 90, 100, lcd.blue)
-    lcd.text("Press A to resume", 40, 140, lcd.white)
-    lcd.show()
-    while button_a.value():  # Wait for A to be pressed again
-        time.sleep(0.1)
-    time.sleep(0.2)  # Debounce
-
 def play_game():
     player_size = 10
     player_x = 115
@@ -112,31 +87,16 @@ def play_game():
     spawn_delay = 20
     frame = 0
     score = 0
-    high_score = 0
     obstacles = []
-    paused = False
 
     while True:
         lcd.fill(lcd.black)
 
-        # Check button presses
-        if not button_a.value():  # Pause/Resume
-            show_pause_screen()
-            time.sleep(0.2)  # Debounce
-        if not button_b.value():  # Show high score
-            show_high_score(high_score)
-            time.sleep(0.2)  # Debounce
-        if not button_x.value():  # Restart
-            return "restart"
-        if not button_y.value():  # Exit
-            return "exit"
-            
-        # Joystick movement (only if not paused)
-        if not paused:
-            if not left.value() and player_x > 0: player_x -= 5
-            if not right.value() and player_x < 230: player_x += 5
-            if not up.value() and player_y > 0: player_y -= 5
-            if not down.value() and player_y < 230: player_y += 5
+        # Joystick movement
+        if not left.value() and player_x > 0: player_x -= 5
+        if not right.value() and player_x < 230: player_x += 5
+        if not up.value() and player_y > 0: player_y -= 5
+        if not down.value() and player_y < 230: player_y += 5
 
         # Draw player
         lcd.fill_rect(player_x, player_y, player_size, player_size, lcd.green)
@@ -156,14 +116,9 @@ def play_game():
             lcd.fill_rect(obs[0], obs[1], player_size, player_size, lcd.red)
         obstacles = [obs for obs in obstacles if obs[1] < 240]
 
-        # Draw score, speed, and high score
+        # Draw score & speed
         lcd.text("Score: {}".format(score), 5, 5, lcd.white)
-        lcd.text("Hi: {}".format(max(score, high_score)), 5, 20, lcd.blue)
-        lcd.text("Speed: {}".format(speed), 5, 35, lcd.white)
-        
-        # Show pause indicator if game is paused
-        if paused:
-            lcd.text("PAUSED", 190, 5, lcd.red)
+        lcd.text("Speed: {}".format(speed), 5, 20, lcd.white)
 
         # Collision detection
         for obs in obstacles:
@@ -174,38 +129,14 @@ def play_game():
                 lcd.fill(lcd.red)
                 lcd.text("GAME OVER", 70, 100, lcd.white)
                 lcd.text("Score: {}".format(score), 70, 120, lcd.white)
-                high_score = max(score, high_score)
-                lcd.text("Press X to restart", 40, 160, lcd.white)
-                lcd.text("  Y to exit", 60, 180, lcd.white)
+                lcd.text("Press Center", 50, 160, lcd.white)
                 lcd.show()
-                while True:
-                    if not button_x.value():  # Restart
-                        time.sleep(0.2)  # Debounce
-                        return "restart"
-                    if not button_y.value():  # Exit
-                        time.sleep(0.2)  # Debounce
-                        return "exit"
-                    time.sleep(0.1)
+                while center.value(): time.sleep(0.1)
+                return  # Restart game
 
         lcd.show()
         time.sleep(0.05)
         frame += 1
         
 def start():
-    while True:
-        result = play_game()
-        if result == "exit":
-            lcd.fill(lcd.black)
-            lcd.text("Game Exited", 70, 100, lcd.white)
-            lcd.text("Press X to play", 60, 140, lcd.green)
-            lcd.text("  Y to exit", 70, 160, lcd.red)
-            lcd.show()
-            while True:
-                if not button_x.value():
-                    time.sleep(0.2)
-                    break
-                if not button_y.value():
-                    lcd.fill(lcd.black)
-                    lcd.show()
-                    return
-                time.sleep(0.1)
+    play_game()
